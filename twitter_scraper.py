@@ -60,6 +60,7 @@ class TwitterScraper(object):
     def fetch(self, parameters):
         q, r = parameters['--count'] / self.MAX_BATCH_SIZE, \
                parameters['--count'] % self.MAX_BATCH_SIZE
+        
         if r > 0:
             tweets = self.fetch_batch(parameters['<handle>'], r, parameters['--include_retweets'], None)
         for i in range(q):
