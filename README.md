@@ -1,4 +1,4 @@
-# make-lstm-great-again
+
 This project aims to artificially recreate Donald Trump's very unique and peculiar tweeting style.
 It uses the Twitter API to fetch the aforementioned tweets, and a LSTM recurrent neural network to generate new content matching the style of this dataset.
 
