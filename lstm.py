@@ -1,4 +1,26 @@
+"""Automatic generation of text similar to a given input document.
 
+Usage:
+  lstm.py train [-i <file>] [--maxlen <l>]
+                [--checkpoint_path <p>] [--no_autoload]
+  lstm.py generate [-o <file>]
+                   [-c <n>] [--maxlen <l>] [--temperature <T>]
+  lstm.py -h | --help
+
+Options:
+  -h --help
+  -i <file> --input <file>   Input text file [default: input.txt]
+  -o <file> --output <file>  Output generated file [default: output.txt]
+  -c <n> --count <n>         Number of characters generated [default: 1000]
+  --maxlen <l>               Maximum length of sequences [default: 20]
+  --temperature <T>          Novelty in the generation, usually between 0. and 2.
+                             If not provided, output will be generated with
+                             several temperatures [default: 1.0]
+  --checkpoint_path <p>      Name of the model snapshots that will be saved at
+                             each checkpoint. [default: model-save]
+  --no_autoload              Do not load the last saved checkpoint model even
+                             if it exists
+"""
 
 from __future__ import absolute_import, division, print_function
 import os, sys, re
@@ -53,15 +75,45 @@ def load_model(model):
 
 """ Build or load the dataset, dictionary and model"""
 def prepare(parameters, dataset_needed=False):
-    pass
+    if not parameters['--no_autoload']:
+        char_idx = load_dictionary()
+    if not char_idx or dataset_needed:
+        X, Y, char_idx = build_dataset(parameters['--input'], parameters['--maxlen'], char_idx)
+    else:
+        X, Y = None, None
+    model = build_model(parameters['--maxlen'], char_idx, parameters['--checkpoint_path'])
+    if not parameters['--no_autoload']:
+        load_model(model)
+    return model, X, Y
 
 """ Train a model on the input dataset"""
 def train(parameters):
-    pass
+    model, X, Y = prepare(parameters, dataset_needed=True)
+    for i in range(50):
+        model.fit(X, Y, validation_set=0.1, batch_size=128,
+            n_epoch=1, run_id='lstm')
+
+        print("-- TESTING...")
+        seed = random_sequence_from_textfile(parameters['--input'], parameters['--maxlen'])
+        print("-- Test with temperature of 1.0 --")
+        print(model.generate(600, temperature=1.0, seq_seed=seed))
+        print("-- Test with temperature of 0.5 --")
+        print(model.generate(600, temperature=0.5, seq_seed=seed))
+        print("-- Test with temperature of 0.25 --")
+        print(model.generate(600, temperature=0.25, seq_seed=seed))
+    f.close()
 
 """ Generate new content from the trained model"""
 def generate(parameters):
-    pass
+    model, _, _ = prepare(parameters)
+    seed = random_sequence_from_textfile(parameters['--input'], parameters['--maxlen'])
+    print("Generating", parameters['--count'],
+        "characters with a temperature of", parameters['--temperature'],'...')
+    s = model.generate(parameters['--count'],
+                       temperature=parameters['--temperature'],
+                       seq_seed=seed)
+    with open(parameters['--output'], 'w') as f:
+      f.write(s)
 
 """ Cast numeric parameters"""
 def cast_parameters(parameters):
