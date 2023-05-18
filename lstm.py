@@ -25,7 +25,21 @@ def load_dictionary(char_idx_file='char_idx.pickle'):
 
 """ Build the deep neural network model for generating sequences"""
 def build_model(maxlen, char_idx, checkpoint_path):
-    pass
+    g = tflearn.input_data([None, maxlen, len(char_idx)])
+    g = tflearn.lstm(g, 512, return_seq=True)
+    g = tflearn.dropout(g, 0.5)
+    g = tflearn.lstm(g, 512, return_seq=True)
+    g = tflearn.dropout(g, 0.5)
+    g = tflearn.lstm(g, 512)
+    g = tflearn.dropout(g, 0.5)
+    g = tflearn.fully_connected(g, len(char_idx), activation='softmax')
+    g = tflearn.regression(g, optimizer='adam', loss='categorical_crossentropy',
+                           learning_rate=0.001)
+
+    return tflearn.SequenceGenerator(g, dictionary=char_idx,
+                                     seq_maxlen=maxlen,
+                                     clip_gradients=5.0,
+                                     checkpoint_path=checkpoint_path)
 
 """ Load a saved model from a file"""
 def load_model(model):
